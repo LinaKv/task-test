@@ -44,7 +44,6 @@ function Form() {
     setDataFromChild((prevState) => ({
       ...prevState,
       [e.type]: e[e.type],
-      to: usersResp.find((el) => el.name !== from.name && Object.keys(el.currencies).includes(e[e.type])),
     }));
   };
 
@@ -76,48 +75,60 @@ function Form() {
 
   let toOptions = usersResp;
   let currencyOptions = [];
+  let fromOptions = usersResp;
 
-  if (from.name) {
-    currencyOptions = Object.keys(from.currencies);
-    toOptions = usersResp.filter((el) => el.name !== from.name && Object.keys(el.currencies).includes(currency));
+  if (currency) {
+    fromOptions = usersResp.filter((el) => Object.keys(el.currencies).includes(currency));
+    if (to.name) {
+      fromOptions = usersResp.filter((el) => el.name !== to.name && Object.keys(el.currencies).includes(currency));
+    }
+    if (from.name) {
+      toOptions = usersResp.filter((el) => el.name !== from.name && Object.keys(el.currencies).includes(currency));
+    }
   }
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    const currencyId = currencyResp.filter((el) => el.code === currency)[0].id;
-    const requestData = {
-      currencyId: currencyId,
-      fromUserId: from.id,
-      toUserId: to.id,
-      amount: amount,
-    };
+    if (fromOptions.find((el) => el.name === from.name) && toOptions.find((el) => el.name === to.name)) {
+      setLoading(true);
+      const currencyId = currencyResp.filter((el) => el.code === currency)[0].id;
+      const requestData = {
+        currencyId: currencyId,
+        fromUserId: from.id,
+        toUserId: to.id,
+        amount: amount,
+      };
 
-    axios
-      .post("http://91.193.43.93:3000/transfers/make-transfer", requestData, {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
-      .then((response) => {
-        toast.success(`Success! ${amountFormat} were sent from ${from.name} to ${to.name}`, {
-          position: toast.POSITION.TOP_RIGHT,
+      axios
+        .post("http://91.193.43.93:3000/transfers/make-transfer", requestData, {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        })
+        .then((response) => {
+          toast.success(`Success! ${amountFormat} were sent from ${from.name} to ${to.name}`, {
+            position: toast.POSITION.TOP_RIGHT,
+          });
+        })
+        .catch((error) => {
+          toast.error(`Error! ${amountFormat} were not sent from ${from.name} to ${to.name}`, {
+            position: toast.POSITION.TOP_RIGHT,
+          });
+        })
+        .finally(() => {
+          setLoading(false);
+          setDataFromChild({
+            from: "",
+            to: "",
+            currency: "",
+            amount: "",
+          });
         });
-      })
-      .catch((error) => {
-        toast.error(`Error! ${amountFormat} were not sent from ${from.name} to ${to.name}`, {
-          position: toast.POSITION.TOP_RIGHT,
-        });
-      })
-      .finally(() => {
-        setLoading(false);
-        setDataFromChild({
-          from: "",
-          to: "",
-          currency: "",
-          amount: "",
-        });
+    } else {
+      toast.error(`Error! You can't do that`, {
+        position: toast.POSITION.TOP_RIGHT,
       });
+    }
   };
 
   if (amount && from.name) {
@@ -141,6 +152,7 @@ function Form() {
   if (loading) {
     return <Spinner />;
   }
+
   return (
     <>
       <div className='flex flex-col items-center justify-center'>
@@ -150,21 +162,12 @@ function Form() {
 
         <form onSubmit={onSubmit}>
           <div className='mb-3'>
-            <p>From</p>
-            <SelectForm
-              options={usersResp}
-              onData={handleDataFromChild}
-              type={"from"}
-            />
-          </div>
-
-          <div className='mb-3'>
             <p>Currency</p>
             <select
               onClick={(e) => (e.target.value ? onClick(JSON.parse(e.target.value)) : "")}
               className='select select-bordered w-full max-w-xs'
             >
-              {currencyOptions.length ? (
+              {
                 <>
                   <option
                     value=''
@@ -173,26 +176,28 @@ function Form() {
                   >
                     Select an option
                   </option>
-                  {currencyOptions.map((el, index) => (
+                  {currencyResp.map((el, index) => (
                     <option
-                      value={JSON.stringify({ type: "currency", currency: el })}
+                      value={JSON.stringify({ type: "currency", currency: el.code })}
                       key={index}
                       id='currency'
                     >
-                      {el}
+                      {el.code}
                     </option>
                   ))}
                 </>
-              ) : (
-                <option
-                  value=''
-                  disabled
-                  selected
-                >
-                  Select "From" first
-                </option>
-              )}
+              }
             </select>
+          </div>
+
+          <div className='mb-3'>
+            <p>From</p>
+            <SelectForm
+              options={fromOptions}
+              onData={handleDataFromChild}
+              type={"from"}
+              isNewFrom={from.name}
+            />
           </div>
 
           <div className='mb-3'>

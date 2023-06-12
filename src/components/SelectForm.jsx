@@ -2,7 +2,7 @@ import React from "react";
 import { useEffect } from "react";
 import { useState } from "react";
 
-function SelectForm({ options, onData, type, isNewTo }) {
+function SelectForm({ options, onData, type, isNewTo, isNewFrom }) {
   const [inputValue, setInputValue] = useState("");
   const [suggestedOptions, setSuggestedOptions] = useState([]);
 
@@ -12,12 +12,6 @@ function SelectForm({ options, onData, type, isNewTo }) {
       setSuggestedOptions(options);
     }
   }, [options]);
-
-  useEffect(() => {
-    if (type === "to" && isNewTo) {
-      setInputValue(isNewTo);
-    }
-  }, [isNewTo]);
 
   const handleChange = (event) => {
     const value = event.target.value;
@@ -41,11 +35,7 @@ function SelectForm({ options, onData, type, isNewTo }) {
     };
     onData(data);
     setSuggestedOptions([]);
-    if (type === "to") {
-      setInputValue(isNewTo);
-    } else {
-      setInputValue(option.name);
-    }
+    setInputValue(option.name);
   };
 
   const onClick = () => {
